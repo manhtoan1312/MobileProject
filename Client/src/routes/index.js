@@ -19,6 +19,7 @@ import EditProjectPage from "../pages/guest/EditProject";
 import InforUser from "../pages/user/InforUser";
 import ChangeEmail from "../pages/user/ChangeEmail";
 import ChangePassword from "../pages/user/ChangePassword";
+import HelpAndFeedBack from "../pages/guest/HelpAndFeedBack";
 
 const Stack = createStackNavigator();
 
@@ -42,7 +43,7 @@ const Navigator = () => (
     <Stack.Screen name="Infor" component={InforUser} />
     <Stack.Screen name="ChangeEmail" component={ChangeEmail} />
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
-    
+
   </Stack.Navigator>
 );
 
