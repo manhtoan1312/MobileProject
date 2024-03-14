@@ -43,6 +43,7 @@ const Navigator = () => (
     <Stack.Screen name="Infor" component={InforUser} />
     <Stack.Screen name="ChangeEmail" component={ChangeEmail} />
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
+    <Stack.Screen name="HelpAndFeedBack" component={HelpAndFeedBack} />
 
   </Stack.Navigator>
 );
