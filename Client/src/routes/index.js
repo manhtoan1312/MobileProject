@@ -20,6 +20,10 @@ import InforUser from "../pages/user/InforUser";
 import ChangeEmail from "../pages/user/ChangeEmail";
 import ChangePassword from "../pages/user/ChangePassword";
 import HelpAndFeedBack from "../pages/guest/HelpAndFeedBack";
+import SomeDay from "../pages/guest/SomeDay";
+import Today from "../pages/guest/Today";
+import Tomorror from "../pages/guest/Tomorrow";
+import ThisWeek from "../pages/guest/ThisWeek"; \
 
 const Stack = createStackNavigator();
 
@@ -44,6 +48,10 @@ const Navigator = () => (
     <Stack.Screen name="ChangeEmail" component={ChangeEmail} />
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
     <Stack.Screen name="HelpAndFeedBack" component={HelpAndFeedBack} />
+    <Stack.Screen name="SomeDay" component={SomeDay} />
+    <Stack.Screen name="Today" component={Today} />
+    <Stack.Screen name="Tomorror" component={Tomorror} />
+    <Stack.Screen name="ThisWeek" component={ThisWeek} />
 
   </Stack.Navigator>
 );
