@@ -23,7 +23,7 @@ import HelpAndFeedBack from "../pages/guest/HelpAndFeedBack";
 import SomeDay from "../pages/guest/SomeDay";
 import Today from "../pages/guest/Today";
 import Tomorror from "../pages/guest/Tomorrow";
-import ThisWeek from "../pages/guest/ThisWeek"; \
+import ThisWeek from "../pages/guest/ThisWeek";
 
 const Stack = createStackNavigator();
 
