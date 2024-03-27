@@ -24,6 +24,12 @@ import SomeDay from "../pages/guest/SomeDay";
 import Today from "../pages/guest/Today";
 import Tomorror from "../pages/guest/Tomorrow";
 import ThisWeek from "../pages/guest/ThisWeek";
+import High from "../pages/guest/High";
+import Medium from "../pages/guest/Medium";
+import Low from "../pages/guest/Low";
+import Next7Day from "../pages/guest/Next7Day";
+import Out from "../pages/guest/Out";
+import Planed from "../pages/guest/Planed";
 
 const Stack = createStackNavigator();
 
@@ -51,7 +57,15 @@ const Navigator = () => (
     <Stack.Screen name="SomeDay" component={SomeDay} />
     <Stack.Screen name="Today" component={Today} />
     <Stack.Screen name="Tomorror" component={Tomorror} />
+    <Stack.Screen name="High" component={High} />
+    <Stack.Screen name="Medium" component={Medium} />
+    <Stack.Screen name="Low" component={Low} />
     <Stack.Screen name="ThisWeek" component={ThisWeek} />
+    <Stack.Screen name="Next7Day" component={Next7Day} />
+    <Stack.Screen name="OutOfDate" component={Out} />
+    <Stack.Screen name="Planed" component={Planed} />
+    <Stack.Screen name="SomeDay" component={SomeDay} />
+    
 
   </Stack.Navigator>
 );
