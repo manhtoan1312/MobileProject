@@ -63,7 +63,7 @@ const Navigator = () => (
     <Stack.Screen name="ThisWeek" component={ThisWeek} />
     <Stack.Screen name="Next7Day" component={Next7Day} />
     <Stack.Screen name="OutOfDate" component={Out} />
-    <Stack.Screen name="Planed" component={Planed} />
+    <Stack.Screen name="Planned" component={Planed} />
     <Stack.Screen name="SomeDay" component={SomeDay} />
     
 
