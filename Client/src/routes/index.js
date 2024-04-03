@@ -30,6 +30,13 @@ import Low from "../pages/guest/Low";
 import Next7Day from "../pages/guest/Next7Day";
 import Out from "../pages/guest/Out";
 import Planed from "../pages/guest/Planed";
+import WorkDeletedDetail from "../pages/guest/WorkDeletedDetail";
+import DeletedDetail from "../pages/guest/Deleted";
+import TaskDefault from "../pages/guest/TaskDefault";
+import SearchWork from "../pages/guest/SearchWork";
+import DoneDetail from "../pages/guest/DoneDetail";
+import WorkDetail from "../pages/guest/WorkDetail";
+import FolderDetail from "../pages/guest/FolderDetail";
 
 const Stack = createStackNavigator();
 
@@ -65,8 +72,13 @@ const Navigator = () => (
     <Stack.Screen name="OutOfDate" component={Out} />
     <Stack.Screen name="Planned" component={Planed} />
     <Stack.Screen name="SomeDay" component={SomeDay} />
-    
-
+    <Stack.Screen name="WorkDeletedDetail" component={WorkDeletedDetail} />
+    <Stack.Screen name="Deleted" component={DeletedDetail} />
+    <Stack.Screen name="Task" component={TaskDefault} />
+    <Stack.Screen name="SearchWork" component={SearchWork} />
+    <Stack.Screen name="Done" component={DoneDetail} />
+    <Stack.Screen name="UpdateWork" component={WorkDetail} />
+    <Stack.Screen name="FolderDetail" component={FolderDetail} />
   </Stack.Navigator>
 );
 
