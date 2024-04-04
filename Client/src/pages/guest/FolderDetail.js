@@ -21,7 +21,6 @@ import { GetDetailProject } from "../../services/Guest/ProjectService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CreateWork } from "../../services/Guest/WorkService";
 import { GetDetailFolder } from "../../services/Guest/FolderService";
-import Focus from "./Focus";
 import ImageFocus from "../../components/Image_Focus";
 import { useIsFocused } from "@react-navigation/native";
 const FolderDetail = ({ route, navigation }) => {

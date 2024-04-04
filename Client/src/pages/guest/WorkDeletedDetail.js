@@ -26,15 +26,7 @@ import {
   RecoverWork,
   UpdateWork,
 } from "../../services/Guest/WorkService";
-import { GetAllTagOfUser } from "../../services/Guest/TagService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { GetProjectByStatus } from "../../services/Guest/ProjectService";
 import ImageFocus from "../../components/Image_Focus";
-import {
-  CreateExtraWork,
-  ExtraMarkCompleted,
-  RecoverExtraWork,
-} from "../../services/Guest/ExtraWork";
 
 const WorkDeletedDetail = ({ route, navigation }) => {
   const id = route.params.id;

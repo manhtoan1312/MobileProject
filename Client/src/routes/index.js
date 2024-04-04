@@ -37,6 +37,7 @@ import SearchWork from "../pages/guest/SearchWork";
 import DoneDetail from "../pages/guest/DoneDetail";
 import WorkDetail from "../pages/guest/WorkDetail";
 import FolderDetail from "../pages/guest/FolderDetail";
+import All from "../pages/guest/All";
 
 const Stack = createStackNavigator();
 
@@ -71,7 +72,6 @@ const Navigator = () => (
     <Stack.Screen name="Next7Day" component={Next7Day} />
     <Stack.Screen name="OutOfDate" component={Out} />
     <Stack.Screen name="Planned" component={Planed} />
-    <Stack.Screen name="SomeDay" component={SomeDay} />
     <Stack.Screen name="WorkDeletedDetail" component={WorkDeletedDetail} />
     <Stack.Screen name="Deleted" component={DeletedDetail} />
     <Stack.Screen name="Task" component={TaskDefault} />
@@ -79,6 +79,7 @@ const Navigator = () => (
     <Stack.Screen name="Done" component={DoneDetail} />
     <Stack.Screen name="UpdateWork" component={WorkDetail} />
     <Stack.Screen name="FolderDetail" component={FolderDetail} />
+    <Stack.Screen name="All" component={All} />
   </Stack.Navigator>
 );
 
