@@ -347,7 +347,6 @@ const WorkDetail = ({ route, navigation }) => {
         );
         
         if (response.success) {
-          console.log(response.data);
         } else {
           Alert.alert("Update Work Error", response.message);
         }
