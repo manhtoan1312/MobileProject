@@ -14,6 +14,7 @@ import {
   SendOTPChangePassword,
 } from "../../services/UserService";
 import { ResendOTP } from "../../services/AccountService";
+import ClearData from "../../services/ClearData";
 
 function ChangeEmail({ route, navigation }) {
   const email = route.params.email;
@@ -75,7 +76,7 @@ function ChangeEmail({ route, navigation }) {
   };
 
   const handleLogin = async () => {
-    await AsyncStorage.clear();
+    await ClearData()
     navigation.navigate("Login");
   };
   const handleResendOTP = async () => {
@@ -104,6 +105,8 @@ function ChangeEmail({ route, navigation }) {
             value={otpInput}
             onChangeText={(text) => setOtpInput(text)}
             style={styles.input}
+            placeholderTextColor={'#686868'}
+
           />
         </View>
 

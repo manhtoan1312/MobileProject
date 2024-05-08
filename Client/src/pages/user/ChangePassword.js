@@ -67,10 +67,17 @@ function ChangePassword({ route, navigation }) {
           
         } else {
           Alert.alert("Invalid OTP", "Please enter the correct OTP.");
+          setOtpInput('')
         }
       } else {
         Alert.alert("OTP Expired", "The OTP has expired. Please resend OTP.");
+        setOtpInput('')
       }
+    }
+    else{
+      Alert.alert('Warning',"passwords are not the same")
+      setPassword('')
+      setRePassword('')
     }
   };
 
@@ -98,6 +105,7 @@ function ChangePassword({ route, navigation }) {
             keyboardType="numeric"
             value={otpInput}
             onChangeText={(text) => setOtpInput(text)}
+            placeholderTextColor={'#686868'}
             style={styles.input}
           />
         </View>
@@ -107,6 +115,7 @@ function ChangePassword({ route, navigation }) {
             value={password}
             onChangeText={(text) => setPassword(text)}
             secureTextEntry={!passwordVisible}
+            placeholderTextColor={'#686868'}
             style={styles.input}
           />
           <TouchableOpacity
@@ -126,6 +135,7 @@ function ChangePassword({ route, navigation }) {
             value={rePassword}
             onChangeText={(text) => setRePassword(text)}
             secureTextEntry={!rePasswordVisible}
+            placeholderTextColor={'#686868'}
             style={styles.input}
           />
           <TouchableOpacity

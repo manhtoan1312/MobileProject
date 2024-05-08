@@ -5,7 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+  Alert,SafeAreaView
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { ResendOTP, ForgotPassword } from "../../services/AccountService";
@@ -14,6 +14,7 @@ function ForgotPasswordOTP({ route, navigation }) {
   const { email, otpCode, time } = route.params;
   const [otpInput, setOtpInput] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [rePassword, setRePassword] = useState("");
   const [resendDisabled, setResendDisabled] = useState(true);
   const [countdown, setCountdown] = useState(60);
   let expiredTime = time;
@@ -48,7 +49,8 @@ function ForgotPasswordOTP({ route, navigation }) {
   };
 
   const handleNext = async () => {
-    const currentTime = new Date().getTime();
+    if(rePassword !== newPassword) {
+      const currentTime = new Date().getTime();
     if (currentTime < expiredTime) {
       if (otpInput === otp) {
         const response = await ForgotPassword(email, newPassword, otpInput);
@@ -57,10 +59,18 @@ function ForgotPasswordOTP({ route, navigation }) {
           navigation.navigate("Login");
         } else {
           Alert.alert("Invalid OTP", "Please enter the correct OTP.");
+          setOtpInput('')
         }
       }
     } else {
-      Alert.alert("OTP Expired", "The OTP has expired. Please resend OTP.");
+          setOtpInput('')
+          Alert.alert("OTP Expired", "The OTP has expired. Please resend OTP.");
+    }
+    }
+    else{
+      Alert.alert('Warning',"passwords are not the same")
+      setRePassword('')
+      setNewPassword('')
     }
   };
   return (
@@ -83,6 +93,7 @@ function ForgotPasswordOTP({ route, navigation }) {
             value={otpInput}
             onChangeText={(text) => setOtpInput(text)}
             style={styles.input}
+            placeholderTextColor={'#686868'}
           />
         </View>
         <View style={styles.inputContainer}>
@@ -91,6 +102,17 @@ function ForgotPasswordOTP({ route, navigation }) {
             secureTextEntry={true}
             value={newPassword}
             onChangeText={(text) => setNewPassword(text)}
+            placeholderTextColor={'#686868'}
+            style={styles.input}
+          />
+        </View>
+        <View style={styles.inputContainer}>
+          <TextInput
+            placeholder="Re-Enter New Password"
+            secureTextEntry={true}
+            value={rePassword}
+            onChangeText={(text) => setRePassword(text)}
+            placeholderTextColor={'#686868'}
             style={styles.input}
           />
         </View>

@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ScrollView,
+  Switch,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import getRole from "../../services/RoleService";
@@ -23,10 +24,12 @@ import {
   updateInformation,
 } from "../../services/UserService";
 import { DeleteGuest } from "../../services/GuestService";
-import * as ImagePicker from "expo-image-picker";
-import { UploadAvt } from "../../services/Guest/UploadFile";
-import { UpdateWork } from "../../services/Guest/WorkService";
 import { ResendOTP } from "../../services/AccountService";
+import { useIsFocused } from "@react-navigation/native";
+import PhoneInputModal from "../../components/PhoneInputModal";
+import DateOfBirthPickerModal from "../../components/DateOfBirthPickerModal";
+import AddressPicker from "../../components/AddressPicker";
+import ClearData from "../../services/ClearData";
 const InforUser = ({ navigation }) => {
   const [infor, setInfor] = useState(null);
   const [editNameModalVisible, setEditNameModalVisible] = useState(false);
@@ -36,23 +39,34 @@ const InforUser = ({ navigation }) => {
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
+  const [isPhoneInputModalVisible, setPhoneInputModalVisible] = useState(false);
+  const [isDateOfBirthVisible, setDateOfBirthVisibl] = useState(false);
+  const [isAddressVisible, setAddressVisible] = useState(false);
+
+  const isFocused = useIsFocused();
+
+  const fetchData = async () => {
+    const response = await getUserInfor();
+    if (response?.success) {
+      setInfor(response.data);
+      setNewFirstName(response.data.firstName);
+      setNewLastName(response.data.lastName);
+      await AsyncStorage.setItem("img", response.data.imageUrl);
+    } else {
+      Alert.alert("Error", "Wrong or expired token, please log in again", [
+        ,
+        { text: "OK", onPress: () => handleLogin() },
+      ]);
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      const response = await getUserInfor();
-      if (response.success) {
-        setInfor(response.data);
-        setNewFirstName(response.data.firstName);
-        setNewLastName(response.data.lastName);
-      } else {
-        console.log("fetch data error!: ", response.message);
-        Alert.alert("Error", "Wrong or expired token, please log in again", [
-          ,
-          { text: "OK", onPress: () => handleLogin() },
-        ]);
+    const fetchDataOnFocus = async () => {
+      if (isFocused) {
+        await fetchData();
       }
     };
-    fetchData();
-  }, []);
+    fetchDataOnFocus();
+  }, [isFocused]);
   const openEditNameModal = () => {
     setEditNameModalVisible(true);
   };
@@ -65,15 +79,12 @@ const InforUser = ({ navigation }) => {
       infor.address ? infor.address : null,
       infor.dateOfBirth ? infor.dateOfBirth : null,
       infor.country ? infor.country : null,
-      infor.imageUrl
-        ? infor.imageUrl
-        : '"https://res.cloudinary.com/dnj5purhu/image/upload/v1701175788/SmartStudyHub/USER/default-avatar_c2ruot.png"',
-      infor.roles ? infor.roles : "CUSTOMER"
+      infor.imageUrl,
+      infor?.isTwoFactor ? infor?.isTwoFactor : false
     );
     if (!response.success) {
       Alert.alert("Change User Information fail", response.message);
     } else {
-      await AsyncStorage.setItem("img", String(response.message.imageUrl));
       await AsyncStorage.setItem(
         "accountName",
         `${response.message.firstName} ${response.message.lastName}`
@@ -82,8 +93,8 @@ const InforUser = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-    await AsyncStorage.clear();
-    navigation.navigate("Login");
+    await ClearData();
+    navigation.goBack();
   };
   const closeEditNameModal = () => {
     setEditNameModalVisible(false);
@@ -126,14 +137,48 @@ const InforUser = ({ navigation }) => {
 
   const handleDeleteAccount = async () => {
     closeMoreOptionsModal();
+    Alert.alert(
+      "Confirm action",
+      "Are you sure you want to delete your account?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        { text: "OK", onPress: () => confirmDeleteAcc() },
+      ]
+    );
+  };
+  const confirmDeleteAcc = async () => {
     const rs = await deleteAccount();
     Alert.alert("Announcement", rs.message);
     navigation.navigate("Home");
   };
 
-  const handleDeleteData = async () => {
+  const handleDeleteData = () => {
     closeMoreOptionsModal();
-    const id = await AsyncStorage.getItem("id");
+    Alert.alert(
+      "Confirm action",
+      "Are you sure you want to delete data of your account?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        { text: "OK", onPress: () => confirmDeleteData() },
+      ]
+    );
+  };
+
+  const confirmDeleteData = async () => {
+    closeMoreOptionsModal();
+    const role = await getRole();
+    let id;
+    if (role) {
+      id = role.id;
+    } else {
+      id = await AsyncStorage.getItem("id");
+    }
     const rs = await CleanData(id);
     Alert.alert("Announcement", rs.message);
     navigation.navigate("Home");
@@ -144,7 +189,7 @@ const InforUser = ({ navigation }) => {
       {
         text: "OK",
         onPress: async () => {
-          await AsyncStorage.clear();
+          await ClearData();
           navigation.navigate("Home");
         },
       },
@@ -174,39 +219,43 @@ const InforUser = ({ navigation }) => {
     }
     closeEditNameModal();
   };
+  const handlePhoneChange = (phone) => {
+    if (phone) {
+      setInfor({
+        ...infor,
+        phoneNumber: phone,
+      });
+    }
+    setPhoneInputModalVisible(false);
+  };
+
+  const handleDateChange = (date) => {
+    if (date) {
+      setInfor({
+        ...infor,
+        dateOfBirth: date,
+      });
+    }
+    setDateOfBirthVisibl(false);
+  };
+  const handleAddressChange = (add) => {
+    if (add) {
+      setInfor({
+        ...infor,
+        address: add,
+      });
+    }
+    setAddressVisible(false);
+  };
 
   const handleSelectGallery = async () => {
-    try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Warning", "Permission denied!");
-      } else {
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 1,
-        });
+    navigation.navigate("AvtUploaded", {
+      infor: infor,
+    });
+  };
 
-        if (!result.canceled) {
-          const file = {
-            uri: result.assets[0].uri,
-            name: `${result.assets[0].fileName}`,
-            type: "image/jpeg",
-          };
-          const response = await UploadAvt(file, "USER");
-          if (response.success) {
-            setInfor({ ...infor, imageUrl: response.data });
-            UpdateWork();
-          } else {
-            Alert.alert("Error!", "upload avatar fail");
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Image library launch error:", error);
-    }
+  const handle2FAChange = (value) => {
+    setInfor({ ...infor, isTwoFactor: value });
   };
 
   return (
@@ -218,7 +267,7 @@ const InforUser = ({ navigation }) => {
               <TouchableOpacity onPress={() => handleBack()}>
                 <MaterialIcons name="arrow-back" size={24} color="black" />
               </TouchableOpacity>
-              <Text style={styles.headerText}>Account Detail</Text>
+              <Text style={styles.headerText}>Profile</Text>
               <TouchableOpacity onPress={openMoreOptionsModal}>
                 <MaterialIcons name="more-vert" size={24} color="black" />
               </TouchableOpacity>
@@ -256,11 +305,7 @@ const InforUser = ({ navigation }) => {
                         borderRadius: 20,
                         marginRight: 10,
                       }}
-                      source={
-                        infor?.imageUrl
-                          ? { uri: infor?.imageUrl }
-                          : require("../../images/avt.jpg")
-                      }
+                      source={{uri: infor?.imageUrl}}
                     />
                     <MaterialIcons
                       name="navigate-next"
@@ -283,6 +328,54 @@ const InforUser = ({ navigation }) => {
                     />
                   </View>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.infoItem}
+                  onPress={() => setPhoneInputModalVisible(true)}
+                >
+                  <Text style={styles.infoLabel}>Phone Number</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={styles.infoValue}>{infor?.phoneNumber}</Text>
+                    <MaterialIcons
+                      name="navigate-next"
+                      size={24}
+                      color="black"
+                    />
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.infoItem}
+                  onPress={() => setDateOfBirthVisibl(true)}
+                >
+                  <Text style={styles.infoLabel}>Date of Birth</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={styles.infoValue}>
+                      {infor?.dateOfBirth
+                        ? new Date(infor?.dateOfBirth).toDateString()
+                        : null}
+                    </Text>
+                    <MaterialIcons
+                      name="navigate-next"
+                      size={24}
+                      color="black"
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.infoItem}
+                  onPress={() => setAddressVisible(true)}
+                >
+                  <Text style={styles.infoLabel}>Address</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={styles.infoValue}>{infor?.address}</Text>
+                    <MaterialIcons
+                      name="navigate-next"
+                      size={24}
+                      color="black"
+                    />
+                  </View>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.infoItem}
                   onPress={() => {
@@ -294,6 +387,17 @@ const InforUser = ({ navigation }) => {
                 >
                   <Text style={styles.infoLabel}>Change Password</Text>
                   <MaterialIcons name="navigate-next" size={24} color="black" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.infoItem} onPress={() => {}}>
+                  <Text style={styles.infoLabel}>
+                    Two-Factor Authentication
+                  </Text>
+                  <Switch
+                    trackColor={{ false: "gray", true: "red" }}
+                    thumbColor={"white"}
+                    value={infor?.isTwoFactor ? infor?.isTwoFactor : false}
+                    onValueChange={handle2FAChange}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -323,6 +427,7 @@ const InforUser = ({ navigation }) => {
                         style={styles.editNameInput}
                         placeholder="Enter first name"
                         value={newFirstName}
+                        placeholderTextColor={"#686868"}
                         onChangeText={(text) => setNewFirstName(text)}
                       />
                       {/* Last Name Input */}
@@ -330,6 +435,7 @@ const InforUser = ({ navigation }) => {
                         style={styles.editNameInput}
                         placeholder="Enter last name"
                         value={newLastName}
+                        placeholderTextColor={"#686868"}
                         onChangeText={(text) => setNewLastName(text)}
                       />
                       <View style={styles.button}>
@@ -403,10 +509,9 @@ const InforUser = ({ navigation }) => {
                         Delete Account
                       </Text>
                     </TouchableOpacity>
-                    
                   </View>
                   <View style={styles.moreOptionsButton}>
-                  <TouchableOpacity
+                    <TouchableOpacity
                       onPress={() => handleDeleteData()}
                       style={{
                         width: "100%",
@@ -457,12 +562,14 @@ const InforUser = ({ navigation }) => {
                         keyboardType="email-address"
                         value={emailInput}
                         onChangeText={(text) => setEmailInput(text)}
+                        placeholderTextColor={"#686868"}
                       />
                       <TextInput
                         style={styles.editNameInput}
                         placeholder="Enter your password"
                         secureTextEntry={true}
                         value={passwordInput}
+                        placeholderTextColor={"#686868"}
                         onChangeText={(text) => setPasswordInput(text)}
                       />
                       <View style={styles.button}>
@@ -500,6 +607,24 @@ const InforUser = ({ navigation }) => {
                 </View>
               </TouchableWithoutFeedback>
             </Modal>
+            <PhoneInputModal
+              isVisible={isPhoneInputModalVisible}
+              phoneNum={infor?.phoneNumber ? infor?.phoneNumber : ""}
+              onClose={() => setPhoneInputModalVisible(false)}
+              onSubmit={handlePhoneChange}
+            />
+            <DateOfBirthPickerModal
+              isVisible={isDateOfBirthVisible}
+              date={infor?.dateOfBirth ? infor?.dateOfBirth : ""}
+              onClose={() => setDateOfBirthVisibl(false)}
+              onDateChange={handleDateChange}
+            />
+            <AddressPicker
+              isVisible={isAddressVisible}
+              add={infor?.address ? infor?.address : ""}
+              onClose={() => setAddressVisible(false)}
+              onSubmit={handleAddressChange}
+            />
           </View>
         </TouchableWithoutFeedback>
       )}
@@ -571,7 +696,6 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 18,
     color: "red",
-    fontWeight: "bold",
   },
   editNameModalContainer: {
     flex: 1,

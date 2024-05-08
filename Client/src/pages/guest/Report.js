@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Image,
   Alert,
-  ScrollView,
+  ScrollView,SafeAreaView
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -103,7 +103,7 @@ const Report = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -147,45 +147,45 @@ const Report = ({ navigation }) => {
           keyboardType="numeric"
         />
 
-        <View style={styles.pickerContainer}>
-          <Text style={styles.pickerLabel}>Select Type of Report: </Text>
-          <PickerSelect
-            value={typeReport}
-            onValueChange={(value) => setTypeReport(value)}
-            items={[
-              { label: "Help", value: "HELP" },
-              { label: "Report Problem", value: "REPORTPROBLEM" },
-              { label: "Report User", value: "REPORTUSER" },
-              { label: "Feedback", value: "FEEDBACK" },
-            ]}
-            style={styles.picker}
-          />
-        </View>
-        {selectedImage && (
-          <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-        )}
-        <TouchableOpacity
-          style={styles.imageButton}
-          onPress={handleChooseImage}
-        >
-          <Text style={styles.buttonText}>Choose Image</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmitReport}
-        >
-          <Text style={styles.buttonText}>Submit</Text>
-        </TouchableOpacity>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>Select Type of Report: </Text>
+            <PickerSelect
+              value={typeReport}
+              onValueChange={(value) => setTypeReport(value)}
+              items={[
+                { label: "Help", value: "HELP" },
+                { label: "Report Problem", value: "REPORTPROBLEM" },
+                { label: "Report User", value: "REPORTUSER" },
+                { label: "Feedback", value: "FEEDBACK" },
+              ]}
+              style={styles.picker}
+            />
+          </View>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+          )}
+          <TouchableOpacity
+            style={styles.imageButton}
+            onPress={handleChooseImage}
+          >
+            <Text style={styles.buttonText}>Choose Image</Text>
+          </TouchableOpacity>
+  
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={handleSubmitReport}
+          >
+            <Text style={styles.buttonText}>Submit</Text>
+          </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    paddingBottom: 200,
+    justifyContent: "center",
   },
   backButton: {
     position: "absolute",
@@ -194,9 +194,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
-    flex: 5,
     paddingHorizontal: 60,
-    paddingTop: 100,
+    justifyContent: "center",
+    height: "100%",
   },
   titleContainer: {
     alignItems: "center",

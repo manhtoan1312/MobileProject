@@ -6,17 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Linking,
+  Linking,SafeAreaView
 } from "react-native";
 import {
   FontAwesome,
   MaterialCommunityIcons,
   Feather,
   EvilIcons,
-  AntDesign,
-  Entypo,
 } from "@expo/vector-icons";
-import { login } from "../../services/AccountService";
+import { ResendOTP, login } from "../../services/AccountService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwt_decode from "jwt-decode";
 
@@ -26,6 +24,7 @@ function Login({ navigation }) {
   const [hide, setHide] = useState(true);
   const unsubscribeRef = useRef(null);
 
+
   useEffect(() => {
     const handleUrlChange = async ({ url }) => {
       const tokenIndex = url.indexOf("token=");
@@ -33,17 +32,14 @@ function Login({ navigation }) {
         const token = url.slice(tokenIndex + 6);
         const decodedToken = jwt_decode(token);
         const subArray = decodedToken.sub.split("-");
-        const id = subArray[0];
-        await AsyncStorage.setItem('token', tokenIndex)
-        await AsyncStorage.setItem("id", id);
+        await AsyncStorage.setItem("token", tokenIndex);
         const firstName = subArray[subArray.length - 1].trim().split(" ")[0];
         const lastName = subArray[subArray.length - 1].trim().split(" ")[1];
-        console.log(id, token, firstName, lastName)
         await AsyncStorage.setItem("accountName", `${lastName} ${firstName}`);
         navigation.navigate("Home");
       } else if (url.includes("account-deleted")) {
         Alert.alert(
-          "Your account has been deleted",
+          "Your account was deleted",
           "Do you want to recover your account?",
           [
             { text: "No", style: "cancel" },
@@ -51,10 +47,7 @@ function Login({ navigation }) {
           ]
         );
       } else if (url.includes("account-banned")) {
-        Alert.alert(
-          "Your account has been banned",
-          "Please create a new account."
-        );
+        Alert.alert("Your account was banned", "Please create a new account.");
       }
     };
 
@@ -66,46 +59,58 @@ function Login({ navigation }) {
     };
   }, [navigation]);
   const handleLogin = async (e) => {
-    if(email && password){
+    if (email && password) {
       e.preventDefault();
-    const response = await login(email, password);
-    if (response.success) {
-      await AsyncStorage.setItem("token", response.token);
-      const role = jwt_decode(response.token);
-      const subArray = role.sub.split("-");
-      const id = subArray[0];
-      await AsyncStorage.setItem("id", id);
-
-      navigation.navigate("Home");
-    } else {
-      if (response.status === "2_4_f") {
-        Alert.alert(
-          "Your account has been deleted",
-          "Do you want to recover your account?",
-          [
-            {
-              text: "No",
-              style: "cancel",
-            },
-            { text: "Yes", onPress: () => navigation.navigate("Recover") },
-          ]
-        );
-      } else {
-        Alert.alert("Account was banned",'Do you want to report this problem?',[
-          [
-            {
-              text: "No",
-              style: "cancel",
-            },
-            { text: "Yes", onPress: () => navigation.navigate("Report") },
-          ]
-        ]);
+      const response = await login(email, password);
+      if (response.success) {
+        if (response.data.isTwoFactor) {
+          const res = await ResendOTP(email);
         
+      if (res.success) {
+        navigation.navigate("2FA", {
+          otpCode: res.data.otpCode,
+          time: res.data.otpTimeExpiration,
+          email: email,
+          token:response.token
+        });
+      } else {
+        Alert.alert("Register failed", response.message);
       }
-    }
-    }
-    else{
-      Alert.alert("Warnning", 'you need to input all field')
+        } else {
+          await AsyncStorage.setItem("token", response.token);
+          navigation.navigate("Home");
+        }
+      } else {
+        if (response.status === "2_4_f") {
+          Alert.alert(
+            "Your account has been deleted",
+            "Do you want to recover your account?",
+            [
+              {
+                text: "No",
+                style: "cancel",
+              },
+              { text: "Yes", onPress: () => navigation.navigate("Recover",{email:email}) },
+            ]
+          );
+        } else if (response.status === "2_3_f") {
+          Alert.alert(
+            "Account was banned",
+            "Do you want to report this problem?",
+            [
+              {
+                text: "No",
+                style: "cancel",
+              },
+              { text: "Yes", onPress: () => navigation.navigate("Report") },
+            ]
+          );
+        } else {
+          Alert.alert("Error", response.message);
+        }
+      }
+    } else {
+      Alert.alert("Warnning", "you need to input all field");
     }
   };
 
@@ -188,7 +193,7 @@ function Login({ navigation }) {
         </View>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Log in</Text>
+            <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
         </View>
 

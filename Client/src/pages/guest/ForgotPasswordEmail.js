@@ -5,7 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+  Alert,SafeAreaView
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Checkemail, ResendOTP } from "../../services/AccountService";
@@ -48,6 +48,7 @@ function ForgotPasswordEmail({ navigation }) {
             keyboardType="email-address"
             value={email}
             onChangeText={(text) => setEmail(text)}
+            placeholderTextColor={'#686868'}
             style={styles.input}
           />
         </View>

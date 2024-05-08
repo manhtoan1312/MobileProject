@@ -10,7 +10,6 @@ const CreateWork = async (
   dueDate,
   numberOfPomodoros,
   timeOfPomodoro,
-  timeWillStart
 ) => {
   try {
     const response = await fetch(`${uri}/create`, {
@@ -27,7 +26,6 @@ const CreateWork = async (
         dueDate,
         numberOfPomodoros,
         timeOfPomodoro,
-        timeWillStart,
       }),
     });
 
@@ -51,7 +49,6 @@ const UpdateWork = async (
   workName,
   priority,
   dueDate,
-  timeWillStart,
   timeWillAnnounce,
   numberOfPomodoros,
   timeOfPomodoro,
@@ -76,7 +73,6 @@ const UpdateWork = async (
         workName,
         priority,
         dueDate,
-        timeWillStart,
         timeWillAnnounce,
         numberOfPomodoros,
         timeOfPomodoro,

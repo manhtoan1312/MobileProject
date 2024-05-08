@@ -19,8 +19,10 @@ import {
 import { GetAllTagOfUser } from "../services/Guest/TagService";
 import { GetProjectByStatus } from "../services/Guest/ProjectService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
-import DateTimePicker from "react-native-modal-datetime-picker";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
+import DateTimePicker from "./DateTimePicker";
+import getRole from "../services/RoleService";
+// import DateTimePicker from "react-native-modal-datetime-picker";
 
 const AddWorkModal = ({
   onDone,
@@ -31,8 +33,6 @@ const AddWorkModal = ({
   type,
   tagId,
 }) => {
-  const [workName, setWorkName] = useState(null);
-  const [pomodoroEstimate, setPomodoroEstimate] = useState(1);
   const [selectedClockIndex, setSelectedClockIndex] = useState(-1);
   const [listproject, setListProject] = useState([]);
   const [tag, setListTag] = useState(null);
@@ -41,7 +41,7 @@ const AddWorkModal = ({
   const [isProjectListModalVisible, setIsProjectListModalVisible] =
     useState(false);
   const [selectedProject, setSelectedProject] = useState(
-    project ? project : { id: null, projectName: "Mission" }
+    project ? project : { id: null, projectName: "Task" }
   );
   const [selectedTag, setSelectedTag] = useState(tagId ? [tagId] : []);
   const [isTagListModalVisible, setIsTagListModalVisible] = useState(false);
@@ -49,8 +49,28 @@ const AddWorkModal = ({
   const [showPicker, setShowPicker] = useState(false);
   const [onDateChange, setOnDateChange] = useState(false);
   const navigation = useNavigation();
+  const isFocused = useIsFocused();
+  
+  const defaultTime = new Date();
+  defaultTime.setHours(23);
+  defaultTime.setMinutes(59);
+
+  useEffect(() => {
+    const fetchDataOnFocus = async () => {
+      if (isFocused) {
+        await fetchData();
+      }
+    };
+    fetchDataOnFocus();
+  }, [isFocused]);
   const fetchData = async () => {
-    const id = await AsyncStorage.getItem("id");
+    const role = await getRole();
+    let id;
+    if (role) {
+      id = role.id;
+    } else {
+      id = await AsyncStorage.getItem("id");
+    }
     const response = await GetAllTagOfUser(id);
     const rs = await GetProjectByStatus(id, "ACTIVE");
     if (response.success) {
@@ -73,44 +93,38 @@ const AddWorkModal = ({
     defaultTime.setMilliseconds(0);
 
     if (type === "TODAY") {
-      defaultTime.setHours(8);
-      defaultTime.setMinutes(30);
+      defaultTime.setHours(23);
+      defaultTime.setMinutes(59);
     } else if (type === "TOMORROW") {
       defaultTime.setDate(defaultTime.getDate() + 1);
-      defaultTime.setHours(8);
-      defaultTime.setMinutes(30);
+      defaultTime.setHours(23);
+      defaultTime.setMinutes(59);
     } else if (type === "NEXT7DAY") {
       defaultTime.setDate(defaultTime.getDate() + 7);
-      defaultTime.setHours(8);
-      defaultTime.setMinutes(30);
+      defaultTime.setHours(23);
+      defaultTime.setMinutes(59);
     } else if (type === "THISWEEK") {
       defaultTime.setDate(defaultTime.getDate() + (7 - defaultTime.getDay()));
-      defaultTime.setHours(8);
-      defaultTime.setMinutes(30);
+      defaultTime.setHours(23);
+      defaultTime.setMinutes(59);
     } else {
       defaultTime.setDate(defaultTime.getDate() + 1);
-      defaultTime.setHours(8);
-      defaultTime.setMinutes(30);
+      defaultTime.setHours(23);
+      defaultTime.setMinutes(59);
     }
 
-    return defaultTime;
+    return defaultTime.getTime();
   };
 
   const handleDonePress = () => {
-    const selectedDateWithoutTime = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      selectedDate.getDate() + 1
-    );
     if (!prioritSelect) {
       setPriority("NONE");
     }
-    if (type === "SOMEDAY") {
+    if (type === "SOMEDAY" && !onDateChange) {
       onDone(
         selectedProject.id,
         prioritSelect,
         null,
-        selectedDate.getTime(),
         selectedClockIndex == -1 ? 0 : selectedClockIndex,
         selectedTag.map((tag) => tag.id)
       );
@@ -118,8 +132,7 @@ const AddWorkModal = ({
       onDone(
         selectedProject.id,
         prioritSelect,
-        selectedDateWithoutTime.getTime() - 1,
-        selectedDate.getTime(),
+        selectedDate,
         selectedClockIndex == -1 ? 0 : selectedClockIndex,
         selectedTag.map((tag) => tag.id)
       );
@@ -132,11 +145,6 @@ const AddWorkModal = ({
 
   const handleClockSelect = (index) => {
     setSelectedClockIndex(index);
-  };
-
-  const handlePrioritySelect = (selectedPriority) => {
-    setPriority(selectedPriority);
-    setIsPriorityModalVisible(false);
   };
 
   const handleProjectListPress = () => {
@@ -216,6 +224,7 @@ const AddWorkModal = ({
         <TouchableOpacity
           style={[styles.priorityButton, { backgroundColor }]}
           onPress={() => {
+            setIsPriorityModalVisible(false);
             setPriority(text);
           }}
         >
@@ -229,14 +238,14 @@ const AddWorkModal = ({
   const selectMission = () => {
     setSelectedProject({
       id: null,
-      projectName: "Mission",
+      projectName: "Task",
       colorCode: "#0000FF",
     });
     setIsProjectListModalVisible(false);
   };
 
   const renderProjectListModal = () => {
-    if (isProjectListModalVisible && listproject && listproject.length > 0) {
+    if (isProjectListModalVisible) {
       return (
         <Modal
           transparent={true}
@@ -253,7 +262,7 @@ const AddWorkModal = ({
                 <View
                   style={[styles.cirleSmall, { backgroundColor: "blue" }]}
                 ></View>
-                <Text style={styles.projectListItemText}>Mission</Text>
+                <Text style={styles.projectListItemText}>Task</Text>
               </TouchableOpacity>
               <FlatList
                 data={listproject}
@@ -314,7 +323,7 @@ const AddWorkModal = ({
   };
 
   const renderTagModal = () => {
-    if (isTagListModalVisible && tag && tag.length > 0) {
+    if (isTagListModalVisible) {
       return (
         <Modal
           transparent={true}
@@ -383,6 +392,7 @@ const AddWorkModal = ({
     setOnDateChange(true);
     setSelectedDate(dateTime);
     hideDateTimePicker();
+    setOnDateChange(true);
   };
 
   return (
@@ -453,7 +463,7 @@ const AddWorkModal = ({
                 <Text style={styles.projectNameText}>
                   {selectedProject?.projectName
                     ? selectedProject?.projectName
-                    : "Mission"}
+                    : "Task"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -469,7 +479,13 @@ const AddWorkModal = ({
         {renderProjectListModal()}
         {renderTagModal()}
 
-        {showPicker && (
+        <DateTimePicker
+          visible={showPicker}
+          onSelectTime={(value) => handleDateTimeConfirm(value)}
+          onClose={hideDateTimePicker}
+          defaultTime={defaultTime}
+        />
+        {/* {showPicker && (
           <DateTimePicker
             isVisible={true}
             mode="datetime"
@@ -477,7 +493,7 @@ const AddWorkModal = ({
             onConfirm={(value) => handleDateTimeConfirm(value)}
             onCancel={hideDateTimePicker}
           />
-        )}
+        )} */}
       </View>
     </TouchableWithoutFeedback>
   );
@@ -512,9 +528,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   projectTextContainer: {
-    marginLeft: 35,
+    alignContent: "center",
     flexDirection: "row",
     justifyContent: "center",
+    paddingLeft: 65,
   },
   projectNameText: {
     marginLeft: 10,
@@ -599,7 +616,7 @@ const styles = StyleSheet.create({
     height: 15,
     width: 15,
     borderRadius: 7,
-    marginRight: 5,
+    marginRight: 10,
     alignItems: "center",
   },
 });

@@ -7,6 +7,7 @@ import {
   Alert,
   TextInput,
   ScrollView,
+  SafeAreaView,
 } from "react-native";
 import { Fontisto, Entypo, AntDesign } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,6 +20,7 @@ import {
   GetDetailFolder,
   DeleteFolder,
 } from "../../services/Guest/FolderService";
+import getRole from "../../services/RoleService";
 
 const EditFolder = ({ route, navigation }) => {
   const folderId = route.params.id;
@@ -52,7 +54,13 @@ const EditFolder = ({ route, navigation }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const id = await AsyncStorage.getItem("id");
+        const role = await getRole();
+        let id;
+        if (role) {
+          id = role.id;
+        } else {
+          id = await AsyncStorage.getItem("id");
+        }
         const response = await GetProjectForUpdate(id, folderId);
         if (response.success) {
           setListProject(response.data);
@@ -119,17 +127,37 @@ const EditFolder = ({ route, navigation }) => {
 
   const handleDelete = async () => {
     if (folderId) {
-      const id = await AsyncStorage.getItem('id')
-      const transformedList = projectSelected.map((id) => ({ id }));
-      const response = await DeleteFolder(id, folderId,name, color, transformedList, null);
-      if (response.success) {
-        navigation.goBack();
-      } else {
-        Alert.alert("Error!", response.message);
-      }
+      Alert.alert(
+        "Confirm action",
+        "All data related to this item will be deleted, are you sure you want to delete it?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          { text: "OK", onPress: () => confirmDeleteFolder() },
+        ]
+      );
     }
   };
 
+  const confirmDeleteFolder = async () => {
+    const id = await AsyncStorage.getItem("id");
+    const transformedList = projectSelected.map((id) => ({ id }));
+    const response = await DeleteFolder(
+      id,
+      folderId,
+      name,
+      color,
+      transformedList,
+      null
+    );
+    if (response.success) {
+      navigation.goBack();
+    } else {
+      Alert.alert("Error!", response.message);
+    }
+  };
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -142,7 +170,7 @@ const EditFolder = ({ route, navigation }) => {
             style={[styles.headerText, { color: name ? "black" : "gray" }]}
             onPress={() => handleDone()}
           >
-            Done
+            Update
           </Text>
         </TouchableOpacity>
       </View>
@@ -208,8 +236,11 @@ const EditFolder = ({ route, navigation }) => {
       </View>
       {folderId && (
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-            <Text style={[styles.buttonText, styles.deleteButtonText]}>
+          <TouchableOpacity
+            style={styles.doneButton}
+            onPress={() => handleDelete()}
+          >
+            <Text style={[styles.buttonText, styles.doneButtonText]}>
               Delete
             </Text>
           </TouchableOpacity>
@@ -234,6 +265,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 18,
+    fontWeight: "600",
   },
   content: {
     flexDirection: "row",
@@ -314,22 +346,32 @@ const styles = StyleSheet.create({
   selectedAddProjectButton: {
     backgroundColor: "lightcoral",
   },
+  actionsContainer: {
+    flexDirection: "column",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    marginTop: 15,
+    backgroundColor: "white",
+    paddingVertical: 5,
+  },
+  doneButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 5,
+    paddingVertical: 12,
+  },
   deleteButton: {
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 5,
-    marginBottom: 6,
-    paddingVertical: 15,
-    marginHorizontal: 50,
-
-    backgroundColor: "red",
+    paddingVertical: 8,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 18,
     color: "white",
   },
   doneButtonText: {
-    color: "blue",
+    color: "red",
   },
   deleteButtonText: {
     color: "white",

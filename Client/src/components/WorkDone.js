@@ -17,8 +17,6 @@ import { Audio } from "expo-av";
 import {
   DeleteExtraWork,
   ExtraMarkCompleted,
-  MarkDelete,
-  RecoverExtraWork,
 } from "../services/Guest/ExtraWork";
 import { DeleteWork, RecoverWork } from "../services/Guest/WorkService";
 import { Swipeable } from "react-native-gesture-handler";
@@ -31,7 +29,7 @@ const WorkDone = ({ workItem, reload, navigation }) => {
     const options = { weekday: "short", month: "numeric", day: "numeric" };
     let color = "gray";
     let dateStart = new Date(workItem.dueDate);
-    dateStart.setDate(dateStart.getDate() - 1);
+    dateStart.setDate(dateStart.getDate());
     let date = dateStart.toLocaleDateString("en-US", options);
 
     if (dueDate === "TODAY") {
@@ -68,13 +66,6 @@ const WorkDone = ({ workItem, reload, navigation }) => {
         reload();
       } else {
         Alert.alert("Mark complete work Error!", response.message);
-      }
-    } else {
-      const response = await RecoverExtraWork(id);
-      if (response.success) {
-        reload();
-      } else {
-        Alert.alert("Recover Extrawork Error!", response.message);
       }
     }
   };
@@ -121,16 +112,28 @@ const WorkDone = ({ workItem, reload, navigation }) => {
   };
 
   const handleDeleteExtraWork = async (id) => {
-    const response = await MarkDelete(id)
-    if(response.success){
-      console.log(response.data)
-      reload()
-    }
-    else{
+    const response = await DeleteExtraWork(id);
+    if (response.success) {
+      console.log(response.data);
+      reload();
+    } else {
       Alert.alert("Error when delele extra work", response.message);
     }
-  }
-  const handleDelete = async () => {
+  };
+  const handleDelete = () => {
+    Alert.alert(
+      "Confirm action",
+      "All data related to this item will be deleted, are you sure you want to delete it?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        { text: "OK", onPress: () => confirmDeleteWork() },
+      ]
+    );
+  };
+  const confirmDeleteWork = async () => {
     const response = await DeleteWork(workItem.id);
     if (response.success) {
       reload();
@@ -194,9 +197,11 @@ const WorkDone = ({ workItem, reload, navigation }) => {
                 ))}
               </View>
               <View
-                style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+                style={{ flexDirection: "row", alignItems: "center" }}
               >
-                {workItem.numberOfPomodoros !== 0 && (
+                {(hasExtraWorks ||
+                  workItem.numberOfPomodoros !== 0 ||
+                  workItem.statusWork !== "SOMEDAY") && (
                   <View style={styles.pomodoroContainer}>
                     <MaterialCommunityIcons
                       name="clock-check"
@@ -287,7 +292,6 @@ const WorkDone = ({ workItem, reload, navigation }) => {
               <View key={item.id}>
                 <Swipeable
                   renderRightActions={renderRightActionsForExtraWork(item.id)}
-                  
                 >
                   <TouchableOpacity
                     onPress={() => playExtra(workItem)}
@@ -296,7 +300,9 @@ const WorkDone = ({ workItem, reload, navigation }) => {
                     <View style={styles.extraWorkItem} key={item.id}>
                       <View style={{ flexDirection: "row" }}>
                         <TouchableOpacity
-                          onPress={() => CompletedExtraWork(item.id, item.status)}
+                          onPress={() =>
+                            CompletedExtraWork(item.id, item.status)
+                          }
                         >
                           {item.status === "COMPLETED" ? (
                             <AntDesign

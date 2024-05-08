@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,16 +8,27 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import useTimerService from "../hooks/useTimerService";
+import { useSelector } from "react-redux";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width: screenWidth } = Dimensions.get("window");
 const ImageFocus = () => {
   const navigation = useNavigation();
-  const timerService = useTimerService();
-
+  const { secondsLeft } = useSelector((state) => state.focus);
+  const [theme, setTheme] = useState(null);
   const toPomodoro = () => {
-    timerService.stopTimer();
     navigation.navigate("Focus");
   };
+  useEffect(() => {
+    const fetchTheme = async () => {
+      const theme = await AsyncStorage.getItem("theme");
+      if (theme) {
+        const parse = JSON.parse(theme);
+        setTheme(parse);
+      }
+    };
+    fetchTheme();
+  }, []);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -25,7 +36,9 @@ const ImageFocus = () => {
         style={styles.imageContainer}
       >
         <ImageBackground
-          source={require("../images/bg_focus_1.jpg")}
+          source={
+            theme ? { uri: theme.url } : require("../images/bg_focus_1.jpg")
+          }
           resizeMode="center"
           style={styles.image}
         >
@@ -33,7 +46,7 @@ const ImageFocus = () => {
             style={{ color: "white", fontSize: 24 }}
             onPress={() => toPomodoro()}
           >
-            {timerService.minutesLeft}
+            {parseInt(secondsLeft / 60)}
           </Text>
         </ImageBackground>
       </TouchableOpacity>

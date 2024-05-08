@@ -12,22 +12,22 @@ import {
   Ionicons,
   FontAwesome5,
   AntDesign,
-  EvilIcons,
 } from "@expo/vector-icons";
 import { useState } from "react";
 import { DeleteWork, MarkCompleted } from "../services/Guest/WorkService";
 import { Audio } from "expo-av";
 import {
+  DeleteExtraWork,
   ExtraMarkCompleted,
-  MarkDelete,
-  RecoverExtraWork,
 } from "../services/Guest/ExtraWork";
 import { Swipeable } from "react-native-gesture-handler";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useDispatch, useSelector } from "react-redux";
+import { setFocus } from "../slices/focusSlice";
 
 const WorkActive = ({ workItem, reload, navigation }) => {
   const [extraVisible, setExtraVisible] = useState(false);
-
+  const { defaultTimePomodoro } = useSelector((state) => state.focus);
+  const dispatch = useDispatch();
   async function playSound() {
     const { sound } = await Audio.Sound.createAsync(
       require("../sound/Done.mp3")
@@ -40,9 +40,8 @@ const WorkActive = ({ workItem, reload, navigation }) => {
     const options = { weekday: "short", month: "numeric", day: "numeric" };
     let color = "gray";
     let dateStart = new Date(workItem.dueDate);
-    dateStart.setDate(dateStart.getDate() - 1);
+    dateStart.setDate(dateStart.getDate());
     let date = dateStart.toLocaleDateString("en-US", options);
-
     if (dueDate === "TODAY") {
       color = "green";
       date = "Today";
@@ -78,13 +77,6 @@ const WorkActive = ({ workItem, reload, navigation }) => {
         reload();
       } else {
         Alert.alert("Mark complete work Error!", response.message);
-      }
-    } else {
-      const response = await RecoverExtraWork(id);
-      if (response.success) {
-        reload();
-      } else {
-        Alert.alert("Recover Extrawork Error!", response.message);
       }
     }
   };
@@ -136,7 +128,7 @@ const WorkActive = ({ workItem, reload, navigation }) => {
   };
 
   const handleDeleteExtraWork = async (id) => {
-    const response = await MarkDelete(id);
+    const response = await DeleteExtraWork(id);
     if (response.success) {
       console.log(response.data);
       reload();
@@ -147,9 +139,19 @@ const WorkActive = ({ workItem, reload, navigation }) => {
 
   const handlePlay = async () => {
     try {
-      await AsyncStorage.setItem("work", JSON.stringify(workItem));
-      await AsyncStorage.setItem("workType", "WORK");
-      await AsyncStorage.setItem("stop", "true");
+      dispatch(
+        setFocus({
+          workId: workItem.id,
+          workName: workItem.workName,
+          startTime: workItem?.startTime,
+          numberOfPomodoro: workItem.numberOfPomodoros,
+          numberOfPomodorosDone: workItem.numberOfPomodorosDone,
+          pomodoroTime: workItem.timeOfPomodoro,
+          isPause: true,
+          isStop: true,
+          secondsLeft: workItem.timeOfPomodoro * 60,
+        })
+      );
       navigation.navigate("Focus");
     } catch (e) {
       Alert.alert("Error when save work", e);
@@ -157,22 +159,48 @@ const WorkActive = ({ workItem, reload, navigation }) => {
   };
   const playExtra = async (item) => {
     if (item.status === "ACTIVE") {
+      console.log(item)
       try {
-        await AsyncStorage.setItem("work", JSON.stringify(item));
-        await AsyncStorage.setItem("workType", "EXTRA");
-        await AsyncStorage.setItem("stop", "true");
+        dispatch(
+          setFocus({
+            extraWorkId: item.id,
+            extraWorkName: item.extraWorkName,
+            isPause: true,
+            isStop: true,
+            workId: null,
+            workName: null,
+            startTime: null,
+            numberOfPomodoro: null,
+            numberOfPomodorosDone: null,
+            pomodoroTime: defaultTimePomodoro,
+            secondsLeft: defaultTimePomodoro * 60,
+          })
+        );
         navigation.navigate("Focus");
       } catch (e) {
         Alert.alert("Error when save work", e);
       }
     }
   };
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    Alert.alert(
+      "Confirm action",
+      "All data related to this item will be deleted, are you sure you want to delete it?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        { text: "OK", onPress: () => confirmDeleteWork() },
+      ]
+    );
+  };
+  const confirmDeleteWork = async () => {
     const response = await DeleteWork(workItem.id);
     if (response.success) {
       reload();
     } else {
-      Alert("Error when delele work", response.message);
+      Alert.alert("Error when delele work", response.message);
     }
   };
   return (
@@ -195,59 +223,65 @@ const WorkActive = ({ workItem, reload, navigation }) => {
                   </Text>
                 ))}
               </View>
-              <View
-                style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
-              >
-                {workItem.numberOfPomodoros !== 0 && (
-                  <View style={styles.pomodoroContainer}>
-                    <MaterialCommunityIcons
-                      name="clock-check"
-                      size={14}
-                      color="#ff3232"
-                    />
-                    <Text style={styles.pomodoroText}>
-                      {workItem.numberOfPomodorosDone}/
-                    </Text>
-                    <MaterialCommunityIcons
-                      name="clock"
-                      size={14}
-                      color="#ff9999"
-                    />
-                    <Text style={[styles.pomodoroText, { marginRight: 5 }]}>
-                      {workItem.numberOfPomodoros}
-                    </Text>
-                  </View>
-                )}
-                {workItem.statusWork !== "SOMEDAY" && renderDay()}
-                <View
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingLeft: 5,
-                  }}
-                >
-                  {hasExtraWorks && (
-                    <>
-                      <Ionicons
-                        name="md-git-branch-outline"
-                        style={{ transform: [{ rotate: "90deg" }] }}
+              {(hasExtraWorks ||
+                workItem.numberOfPomodoros !== 0 ||
+                workItem.statusWork !== "SOMEDAY") && (
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  {workItem.numberOfPomodoros !== 0 && (
+                    <View style={styles.pomodoroContainer}>
+                      <MaterialCommunityIcons
+                        name="clock-check"
                         size={14}
-                        color="gray"
+                        color="#ff3232"
                       />
-                      <Text
-                        style={{ marginLeft: 5, fontSize: 12, color: "gray" }}
-                      >
-                        {`${
-                          workItem.extraWorks.filter(
-                            (extraWork) => extraWork.status === "COMPLETED"
-                          ).length
-                        }/${workItem.extraWorks.length}`}
+                      <Text style={styles.pomodoroText}>
+                        {workItem.numberOfPomodorosDone}/
                       </Text>
-                    </>
+                      <MaterialCommunityIcons
+                        name="clock"
+                        size={14}
+                        color="#ff9999"
+                      />
+                      <Text style={[styles.pomodoroText, { marginRight: 5 }]}>
+                        {workItem.numberOfPomodoros}
+                      </Text>
+                    </View>
                   )}
+                  {workItem.statusWork !== "SOMEDAY" && renderDay()}
+                  <View
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingLeft: 5,
+                    }}
+                  >
+                    {hasExtraWorks && (
+                      <>
+                        <Ionicons
+                          name="md-git-branch-outline"
+                          style={{ transform: [{ rotate: "90deg" }] }}
+                          size={14}
+                          color="gray"
+                        />
+                        <Text
+                          style={{
+                            marginLeft: 5,
+                            fontSize: 12,
+                            color: "gray",
+                          }}
+                        >
+                          {`${
+                            workItem.extraWorks.filter(
+                              (extraWork) => extraWork.status === "COMPLETED"
+                            ).length
+                          }/${workItem.extraWorks.length}`}
+                        </Text>
+                      </>
+                    )}
+                  </View>
                 </View>
-              </View>
+              )}
             </View>
             <View
               style={{
@@ -391,7 +425,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-
+    marginRight: 10,
     backgroundColor: "white",
     borderRadius: 10,
     padding: 10,
@@ -429,7 +463,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
     borderLeftColor: "lightgray",
     borderLeftWidth: 2,
-    marginVertical: 10,
+    marginVertical: 5,
   },
   extraWorkItem: {
     paddingLeft: 5,

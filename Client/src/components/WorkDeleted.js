@@ -69,7 +69,7 @@ const WorkDeleted = ({ workItem, reload, navigation }) => {
     const options = { weekday: "short", month: "numeric", day: "numeric" };
     let color = "gray";
     let dateStart = new Date(workItem.dueDate);
-    dateStart.setDate(dateStart.getDate() - 1);
+    dateStart.setDate(dateStart.getDate());
     let date = dateStart.toLocaleDateString("en-US", options);
 
     if (dueDate === "TODAY") {
@@ -113,9 +113,9 @@ const WorkDeleted = ({ workItem, reload, navigation }) => {
                 {workItem.workName}
               </Text>
               <View
-                style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+                style={{flexDirection: "row", alignItems: "center" }}
               >
-                {workItem.numberOfPomodoros !== 0 && (
+                {workItem.numberOfPomodoros !== 0 || workItem.statusWork !== "SOMEDAY" && (
                   <View style={styles.pomodoroContainer}>
                     <MaterialCommunityIcons
                       name="clock-check"
@@ -194,6 +194,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
     height: 55,
+    marginRight:10
   },
   circle: {
     width: 20,

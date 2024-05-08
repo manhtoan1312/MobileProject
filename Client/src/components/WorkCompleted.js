@@ -12,26 +12,38 @@ import {
   Ionicons,
   FontAwesome5,
 } from "@expo/vector-icons";
-import { Audio } from "expo-av";
-import {
-  ExtraMarkCompleted,
-  RecoverExtraWork,
-} from "../services/Guest/ExtraWork";
 import { DeleteWork, RecoverWork } from "../services/Guest/WorkService";
 import { Swipeable } from "react-native-gesture-handler";
 import ExtraActive from "./ExtraActive";
-import ExtraDeleted from "./ExtraDeleted";
 import ExtraCompleted from "./ExtraCompleted";
 
 const WorkCompleted = ({ workItem, reload, navigation }) => {
+  const renderDoneTime = () => {
+    if(workItem.startTime=== workItem.endTime) {
+      return(
+        <View style={{justifyContent:'center', alignItems:'center', paddingRight:5}}>
+          <Text>{renderTime(workItem.startTime)}</Text>
+          <Text>|</Text>
+          <Text>{renderTime(workItem.endTime)}</Text>
+        </View>
+      )
+    }
+    else{
+      return(
+        <View style={{justifyContent:'center', alignItems:'center', paddingRight:5}}>
+          <Text>{renderTime(workItem.endTime)}</Text>
+        </View>
+      )
+    }
+  }
   const renderDay = () => {
     const dueDate = workItem.statusWork;
     const options = { weekday: "short", month: "numeric", day: "numeric" };
     let color = "gray";
     let dateStart = new Date(workItem.endTime);
-    dateStart.setDate(dateStart.getDate() - 1);
+    dateStart.setDate(dateStart.getDate());
     let date = dateStart.toLocaleDateString("en-US", options);
-
+    console.log(date);
     if (dueDate === "TODAY") {
       color = "green";
       date = "Today";
@@ -50,8 +62,8 @@ const WorkCompleted = ({ workItem, reload, navigation }) => {
     );
   };
 
-  const renderTime = () => {
-    const date = new Date(workItem.endTime);
+  const renderTime = (time) => {
+    const date = new Date(time);
     const hours = String(date.getHours()).padStart(2, "0");
     const minutes = String(date.getMinutes()).padStart(2, "0");
 
@@ -88,12 +100,25 @@ const WorkCompleted = ({ workItem, reload, navigation }) => {
     );
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    Alert.alert(
+      "Confirm action",
+      "All data related to this item will be deleted, are you sure you want to delete it?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        { text: "OK", onPress: () => confirmDeleteWork() },
+      ]
+    );
+  };
+  const confirmDeleteWork = async () => {
     const response = await DeleteWork(workItem.id);
     if (response.success) {
       reload();
     } else {
-      Alert("Error when delele work", response.message);
+      Alert.alert("Error when delele work", response.message);
     }
   };
   return (
@@ -132,17 +157,17 @@ const WorkCompleted = ({ workItem, reload, navigation }) => {
                     {workItem.workName}{" "}
                   </Text>
                   <View>
-                    <Text>focus time: {workItem.timePassed}M</Text>
+                    <Text>Total focus time: {workItem.timePassed}M</Text>
                   </View>
                 </View>
                 <View
                   style={{
-                    flex: 1,
                     flexDirection: "row",
                     alignItems: "center",
                   }}
                 >
-                  {workItem.numberOfPomodoros !== 0 && (
+                  {( workItem.numberOfPomodoros !== 0 ||
+                    workItem.statusWork !== "SOMEDAY") && (
                     <View style={styles.pomodoroContainer}>
                       <MaterialCommunityIcons
                         name="clock-check"
@@ -163,14 +188,7 @@ const WorkCompleted = ({ workItem, reload, navigation }) => {
                     </View>
                   )}
                   {renderDay()}
-                  <View
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      paddingLeft: 5,
-                    }}
-                  ></View>
+                  
                 </View>
               </View>
               <View
@@ -181,13 +199,14 @@ const WorkCompleted = ({ workItem, reload, navigation }) => {
                 }}
               >
                 <TouchableOpacity style={styles.playButton}>
-                  <Text>{renderTime()}</Text>
+                  <View style={{justifyContent:'center'}}>{renderDoneTime()}</View>
                 </TouchableOpacity>
               </View>
             </View>
           </TouchableOpacity>
         </View>
       </Swipeable>
+
       {workItem?.extraWorks.length > 0 &&
         workItem.extraWorks?.map((item) => (
           <View

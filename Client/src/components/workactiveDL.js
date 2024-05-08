@@ -18,6 +18,7 @@ import { useState } from "react";
 import { DeleteWork, MarkCompleted } from "../services/Guest/WorkService";
 import { Audio } from "expo-av";
 import {
+  DeleteExtraWork,
   ExtraMarkCompleted,
   MarkDelete,
   RecoverExtraWork,
@@ -27,10 +28,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ExtraDeleted from "./ExtraDeleted";
 import ExtraCompleted from "./ExtraCompleted";
 import ExtraActive from "./ExtraActive";
+import { useDispatch, useSelector } from "react-redux";
+import { setIsPlay } from "../slices/isPlaySlice";
 
 const WorkactiveDL = ({ workItem, reload, navigation }) => {
   const [extraVisible, setExtraVisible] = useState(false);
-
+  const isPlay = useSelector((state) => state.isPlay.value)
+  const dispatch = useDispatch()
   async function playSound() {
     const { sound } = await Audio.Sound.createAsync(
       require("../sound/Done.mp3")
@@ -43,7 +47,7 @@ const WorkactiveDL = ({ workItem, reload, navigation }) => {
     const options = { weekday: "short", month: "numeric", day: "numeric" };
     let color = "gray";
     let dateStart = new Date(workItem.dueDate);
-    dateStart.setDate(dateStart.getDate() - 1);
+    dateStart.setDate(dateStart.getDate());
     let date = dateStart.toLocaleDateString("en-US", options);
 
     if (dueDate === "TODAY") {
@@ -139,7 +143,7 @@ const WorkactiveDL = ({ workItem, reload, navigation }) => {
   };
 
   const handleDeleteExtraWork = async (id) => {
-    const response = await MarkDelete(id);
+    const response = await DeleteExtraWork(id);
     if (response.success) {
       console.log(response.data);
       reload();
@@ -152,7 +156,7 @@ const WorkactiveDL = ({ workItem, reload, navigation }) => {
     try {
       await AsyncStorage.setItem("work", JSON.stringify(workItem));
       await AsyncStorage.setItem("workType", "WORK");
-      await AsyncStorage.setItem("stop", "true");
+      dispatch(setIsPlay(false))
       navigation.navigate("Focus");
     } catch (e) {
       Alert.alert("Error when save work", e);
@@ -170,12 +174,25 @@ const WorkactiveDL = ({ workItem, reload, navigation }) => {
       }
     }
   };
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    Alert.alert(
+      "Confirm action",
+      "All data related to this item will be deleted, are you sure you want to delete it?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        { text: "OK", onPress: () => confirmDeleteWork() },
+      ]
+    );
+  };
+  const confirmDeleteWork = async () => {
     const response = await DeleteWork(workItem.id);
     if (response.success) {
       reload();
     } else {
-      Alert("Error when delele work", response.message);
+      Alert.alert("Error when delele work", response.message);
     }
   };
   return (
@@ -198,59 +215,65 @@ const WorkactiveDL = ({ workItem, reload, navigation }) => {
                   </Text>
                 ))}
               </View>
-              <View
-                style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
-              >
-                {workItem.numberOfPomodoros !== 0 && (
-                  <View style={styles.pomodoroContainer}>
-                    <MaterialCommunityIcons
-                      name="clock-check"
-                      size={14}
-                      color="#ff3232"
-                    />
-                    <Text style={styles.pomodoroText}>
-                      {workItem.numberOfPomodorosDone}/
-                    </Text>
-                    <MaterialCommunityIcons
-                      name="clock"
-                      size={14}
-                      color="#ff9999"
-                    />
-                    <Text style={[styles.pomodoroText, { marginRight: 5 }]}>
-                      {workItem.numberOfPomodoros}
-                    </Text>
-                  </View>
-                )}
-                {workItem.statusWork !== "SOMEDAY" && renderDay()}
-                <View
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingLeft: 5,
-                  }}
-                >
-                  {hasExtraWorks && (
-                    <>
-                      <Ionicons
-                        name="md-git-branch-outline"
-                        style={{ transform: [{ rotate: "90deg" }] }}
+              {(hasExtraWorks ||
+                workItem.numberOfPomodoros !== 0 ||
+                workItem.statusWork !== "SOMEDAY") && (
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  {workItem.numberOfPomodoros !== 0 && (
+                    <View style={styles.pomodoroContainer}>
+                      <MaterialCommunityIcons
+                        name="clock-check"
                         size={14}
-                        color="gray"
+                        color="#ff3232"
                       />
-                      <Text
-                        style={{ marginLeft: 5, fontSize: 12, color: "gray" }}
-                      >
-                        {`${
-                          workItem.extraWorks.filter(
-                            (extraWork) => extraWork.status === "COMPLETED"
-                          ).length
-                        }/${workItem.extraWorks.length}`}
+                      <Text style={styles.pomodoroText}>
+                        {workItem.numberOfPomodorosDone}/
                       </Text>
-                    </>
+                      <MaterialCommunityIcons
+                        name="clock"
+                        size={14}
+                        color="#ff9999"
+                      />
+                      <Text style={[styles.pomodoroText, { marginRight: 5 }]}>
+                        {workItem.numberOfPomodoros}
+                      </Text>
+                    </View>
                   )}
+                  {workItem.statusWork !== "SOMEDAY" && renderDay()}
+                  <View
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingLeft: 5,
+                    }}
+                  >
+                    {hasExtraWorks && (
+                      <>
+                        <Ionicons
+                          name="md-git-branch-outline"
+                          style={{ transform: [{ rotate: "90deg" }] }}
+                          size={14}
+                          color="gray"
+                        />
+                        <Text
+                          style={{
+                            marginLeft: 5,
+                            fontSize: 12,
+                            color: "gray",
+                          }}
+                        >
+                          {`${
+                            workItem.extraWorks.filter(
+                              (extraWork) => extraWork.status === "COMPLETED"
+                            ).length
+                          }/${workItem.extraWorks.length}`}
+                        </Text>
+                      </>
+                    )}
+                  </View>
                 </View>
-              </View>
+              )}
             </View>
             <View
               style={{
@@ -297,17 +320,21 @@ const WorkactiveDL = ({ workItem, reload, navigation }) => {
             <View style={styles.extraContainer}>
               {workItem.extraWorks?.map((item) => (
                 <View key={item.id}>
-                {item.status === "ACTIVE" && (
-                  <ExtraActive extra={item} reload={reload} navigation={navigation} />
-                )}
-                {item.status === "COMPLETED" && (
-                  <ExtraCompleted
-                    extra={item}
-                    reload={reload}
-                    navigation={navigation}
-                  />
-                )}
-              </View>
+                  {item.status === "ACTIVE" && (
+                    <ExtraActive
+                      extra={item}
+                      reload={reload}
+                      navigation={navigation}
+                    />
+                  )}
+                  {item.status === "COMPLETED" && (
+                    <ExtraCompleted
+                      extra={item}
+                      reload={reload}
+                      navigation={navigation}
+                    />
+                  )}
+                </View>
               ))}
               {workItem?.extraWorksDeleted?.map((item) => (
                 <View key={item}>

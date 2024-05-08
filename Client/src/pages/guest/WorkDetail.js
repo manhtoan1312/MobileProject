@@ -8,6 +8,7 @@ import {
   FlatList,
   Alert,
   ScrollView,
+  SafeAreaView,
 } from "react-native";
 import {
   MaterialIcons,
@@ -40,6 +41,9 @@ import {
   ExtraMarkCompleted,
   RecoverExtraWork,
 } from "../../services/Guest/ExtraWork";
+import getRole from "../../services/RoleService";
+import { setFocus } from "../../slices/focusSlice";
+import { useDispatch } from "react-redux";
 
 const WorkDetail = ({ route, navigation }) => {
   const id = route.params.id;
@@ -58,7 +62,10 @@ const WorkDetail = ({ route, navigation }) => {
   const [dateTimePickerVisible, setDateTimePickerVisible] = useState(false);
   const [extraWorkName, setExtraWorkName] = useState("");
   const [note, setNote] = useState(work?.note || "");
- 
+  const dispatch = useDispatch()
+  const defaultTime = new Date();
+  defaultTime.setHours(23);
+  defaultTime.setMinutes(59);
   useEffect(() => {
     fetchData();
 
@@ -71,10 +78,16 @@ const WorkDetail = ({ route, navigation }) => {
     try {
       setNote("");
       setExtraWorkName("");
-      const Userid = await AsyncStorage.getItem("id");
+      const role = await getRole();
+      let userId;
+      if (role) {
+        userId = role.id;
+      } else {
+        userId = await AsyncStorage.getItem("id");
+      }
       const [workResponse, listProjectResponse] = await Promise.all([
         GetDetailWork(id),
-        GetProjectByStatus(Userid, "ACTIVE"),
+        GetProjectByStatus(userId, "ACTIVE"),
       ]);
 
       if (isMounted.current) {
@@ -82,7 +95,6 @@ const WorkDetail = ({ route, navigation }) => {
           setWork(workResponse.data);
           setListTagSelected(workResponse.data.tags);
           setNote(workResponse.data?.note || "");
-          
         }
 
         if (listProjectResponse.success) {
@@ -179,9 +191,7 @@ const WorkDetail = ({ route, navigation }) => {
   };
 
   const openSelectDueDate = () => {
-    if (work.statusWork === "SOMEDAY") {
       setCalendarVisible(true);
-    }
   };
 
   const handleSelectDueDate = (date) => {
@@ -189,16 +199,25 @@ const WorkDetail = ({ route, navigation }) => {
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
-
     let statusWork = "PLANNED";
-
-    if (selectedDateObject.toDateString() === today.toDateString()) {
+    if (
+      selectedDateObject.getFullYear() === today.getFullYear() &&
+      selectedDateObject.getMonth() === today.getMonth() &&
+      selectedDateObject.getDate() === today.getDate()
+    ) {
       statusWork = "TODAY";
-    } else if (selectedDateObject.toDateString() === tomorrow.toDateString()) {
+    } else if (
+      selectedDateObject.getFullYear() === tomorrow.getFullYear() &&
+      selectedDateObject.getMonth() === tomorrow.getMonth() &&
+      selectedDateObject.getDate() === tomorrow.getDate()
+    ) {
       statusWork = "TOMORROW";
     }
-    selectedDateObject.setDate(selectedDateObject.getDate() + 1);
-    selectedDateObject.setTime(selectedDateObject.getTime() - 1);
+
+    selectedDateObject.setHours(23);
+    selectedDateObject.setMinutes(59);
+    selectedDateObject.setSeconds(59);
+    selectedDateObject.setMilliseconds(999);
     const updateWork = { ...work };
     updateWork.dueDate = selectedDateObject.getTime();
     updateWork.statusWork = statusWork;
@@ -235,6 +254,30 @@ const WorkDetail = ({ route, navigation }) => {
     updateWork.isRemindered = false;
     setWork(updateWork);
   };
+
+  const handleStartPomodoro = async () => {
+    dispatch(
+      setFocus({ 
+        workId: work.id,
+        workName: work.workName,
+        startTime: work?.startTime,
+        numberOfPomodoro: work.numberOfPomodoro,
+        numberOfPomodorosDone: work.numberOfPomodorosDone,
+        pomodoroTime: work.timeOfPomodoro,
+        isPause:true, 
+        isStop:true
+      })
+    );
+    setMoreOptionsModalVisible(false)
+    navigation.navigate('Focus')
+  };
+  const handleCreatePomodoro = async () => {
+    setMoreOptionsModalVisible(false)
+    await updateWork();
+    navigation.navigate('CreatePomodoro',{
+      work:work
+    })
+  }
   const colorflag = () => {
     if (work) {
       if (work?.priority === "HIGH") {
@@ -256,7 +299,6 @@ const WorkDetail = ({ route, navigation }) => {
   };
   const changePomodoro = (time, pomo) => {
     const updateWork = { ...work };
-    console.log(time, pomo);
     updateWork.numberOfPomodoros = time;
     updateWork.timeOfPomodoro = pomo;
     setWork(updateWork);
@@ -272,7 +314,7 @@ const WorkDetail = ({ route, navigation }) => {
     const dueDate = work.statusWork;
     const options = { weekday: "short", month: "numeric", day: "numeric" };
     let dateStart = new Date(work.dueDate);
-    dateStart.setDate(dateStart.getDate() - 1);
+    dateStart.setDate(dateStart.getDate());
     let date = dateStart.toLocaleDateString("en-US", options);
 
     if (dueDate === "TODAY") {
@@ -282,13 +324,16 @@ const WorkDetail = ({ route, navigation }) => {
     }
 
     return (
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <TouchableOpacity
+        onPress={() => deleteDueDate()}
+        style={{ flexDirection: "row", alignItems: "center" }}
+      >
         <FontAwesome5 name="calendar-alt" size={14} color="gray" />
         <Text style={{ padding: 5 }}>{date}</Text>
-        <TouchableOpacity onPress={() => deleteDueDate()}>
+        <View>
           <AntDesign name="closecircle" size={20} color="gray" />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
     );
   };
   function renderTime() {
@@ -307,23 +352,28 @@ const WorkDetail = ({ route, navigation }) => {
       .padStart(2, "0")}`;
     const result = `${formattedTime}, ${dayOfWeek}, ${formattedDate}`;
     return (
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <TouchableOpacity
+        onPress={() => deleteTimeRemindered()}
+        style={{ flexDirection: "row", alignItems: "center" }}
+      >
         <Text style={{ padding: 5 }}>{result}</Text>
-        <TouchableOpacity onPress={() => deleteTimeRemindered()}>
+        <View>
           <AntDesign name="closecircle" size={20} color="gray" />
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
     );
   }
   const updateWork = async () => {
-    if(work.workName){
+    if (work.workName) {
       try {
         const updatedWorkdata = { ...work };
         updatedWorkdata.note = note;
         updatedWorkdata.tags = listTagSelected.map((tag) => ({ id: tag.id }));
-        updatedWorkdata.extraWorks = updatedWorkdata.extraWorks.map((extra) => ({
-          id: extra.id,
-        }));
+        updatedWorkdata.extraWorks = updatedWorkdata.extraWorks.map(
+          (extra) => ({
+            id: extra.id,
+          })
+        );
         const response = await UpdateWork(
           updatedWorkdata.id,
           updatedWorkdata.userId,
@@ -332,7 +382,6 @@ const WorkDetail = ({ route, navigation }) => {
           updatedWorkdata.workName,
           updatedWorkdata.priority,
           updatedWorkdata.dueDate,
-          updatedWorkdata.timeWillStart,
           updatedWorkdata.timeWillAnnounce
             ? updatedWorkdata.timeWillAnnounce
             : null,
@@ -345,34 +394,34 @@ const WorkDetail = ({ route, navigation }) => {
           updatedWorkdata.tags,
           updatedWorkdata.extraWorks
         );
-        
+
         if (response.success) {
+          setWork(response.data);
         } else {
           Alert.alert("Update Work Error", response.message);
         }
       } catch (error) {
         console.error("Error updating work:", error);
       }
-    }
-    else{
-      Alert.alert('Warnning','Workname can not be null')
+    } else {
+      Alert.alert("Warnning", "Workname can not be null");
     }
   };
 
   const addExtraWork = async () => {
-    await updateWork();
-    if(work.workName){
-    const response = await CreateExtraWork(work.id, extraWorkName);
-    if (response.success) {
-      fetchData();
-    } else {
-      Alert.alert("Create Extra Work Error", response.message);
-    }
+    if (work.workName) {
+      const response = await CreateExtraWork(work.id, extraWorkName);
+      if (response.success) {
+        setExtraWorkName("");
+        await updateWork();
+      } else {
+        Alert.alert("Create Extra Work Error", response.message);
+      }
     }
   };
   const changeWorkState = async () => {
     await updateWork();
-    if(work.workName) {
+    if (work.workName) {
       if (work.status === "ACTIVE") {
         const response = await MarkCompleted(work.id);
         if (response.success) {
@@ -393,12 +442,23 @@ const WorkDetail = ({ route, navigation }) => {
 
   const playExtra = async (item) => {
     await updateWork();
-    if(work.workName){
+    if (work.workName) {
       if (item.status === "ACTIVE") {
         try {
-          await AsyncStorage.setItem("work", JSON.stringify(item));
-          await AsyncStorage.setItem("workType", "EXTRA");
-          await AsyncStorage.setItem("stop", "true");
+          dispatch(
+            setFocus({
+              extraWorkId: item.id,
+              extraWorkName: item.extraWorkName,
+              isPause:true, 
+              isStop:true,
+              workId: null,
+            workName: null,
+            startTime: null,
+            numberOfPomodoro: null,
+            numberOfPomodorosDone: null,
+            pomodoroTime: null,
+            })
+          );
           navigation.navigate("Focus");
         } catch (e) {
           Alert.alert("Error when save work", e);
@@ -409,7 +469,7 @@ const WorkDetail = ({ route, navigation }) => {
 
   const CompletedExtraWork = async (id, status) => {
     await updateWork();
-    if(work.workName){
+    if (work.workName) {
       if (status === "ACTIVE") {
         const response = await ExtraMarkCompleted(id);
         if (response.success) {
@@ -429,9 +489,8 @@ const WorkDetail = ({ route, navigation }) => {
   };
 
   return (
-    <View  style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <ScrollView>
-        
         {/* WorkHeader Component */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => handleBack()}>
@@ -442,7 +501,7 @@ const WorkDetail = ({ route, navigation }) => {
             onPress={() => setModalVisible(true)}
           >
             <Text style={styles.projectName}>
-              {work?.projectName || "Mission"}
+              {work?.projectName || "Task"}
             </Text>
             <AntDesign name="down" size={15} color="white" />
           </TouchableOpacity>
@@ -464,7 +523,7 @@ const WorkDetail = ({ route, navigation }) => {
                   Choose Project
                 </Text>
               </View>
-  
+
               <TouchableOpacity
                 style={[
                   styles.projectItem,
@@ -473,7 +532,7 @@ const WorkDetail = ({ route, navigation }) => {
                 onPress={() => handleUpdateProject(null)}
               >
                 <MaterialIcons name="home-work" size={24} color="#7f7fff" />
-                <Text>Mission</Text>
+                <Text>Task</Text>
               </TouchableOpacity>
               <FlatList
                 data={listProject}
@@ -520,8 +579,9 @@ const WorkDetail = ({ route, navigation }) => {
           visible={dateTimePickerVisible}
           onSelectTime={handleDateTimePicked}
           onClose={hideDateTimePicker}
+          defaultTime={defaultTime}
         />
-  
+
         <Modal
           animationType="slide"
           transparent={true}
@@ -529,6 +589,23 @@ const WorkDetail = ({ route, navigation }) => {
           onRequestClose={hideMoreOptions}
         >
           <View style={styles.moreOptionsModalContainer}>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.buttonStart}
+                onPress={handleStartPomodoro}
+              >
+                <Text style={styles.startOption}>Start Work</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.buttonCreate}
+                onPress={handleCreatePomodoro}
+              >
+                <Text style={styles.createOption}>Create New Pomodoro</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.buttonMore}
@@ -559,7 +636,11 @@ const WorkDetail = ({ route, navigation }) => {
                     {work.status === "ACTIVE" ? (
                       <View style={styles.cirle}></View>
                     ) : (
-                      <Ionicons name="checkmark-circle" size={24} color="green" />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color="green"
+                      />
                     )}
                   </TouchableOpacity>
                   <View>
@@ -579,10 +660,13 @@ const WorkDetail = ({ route, navigation }) => {
                         <TouchableOpacity
                           onPress={() => DeleteTag(tag.id)}
                           key={tag.id}
-                          style={[styles.tag, { backgroundColor: tag.colorCode }]}
+                          style={[
+                            styles.tag,
+                            { backgroundColor: tag.colorCode },
+                          ]}
                         >
                           <Text style={styles.tagText}>{tag.tagName} </Text>
-  
+
                           <View style={{ justifyContent: "center" }}>
                             <Ionicons name="close" size={12} color="#fff" />
                           </View>
@@ -602,7 +686,7 @@ const WorkDetail = ({ route, navigation }) => {
                 <Ionicons name="ios-flag" size={24} color={colorflag()} />
               </TouchableOpacity>
             </View>
-  
+
             <View style={styles.bodycontainer}>
               <View>
                 <TouchableOpacity
@@ -654,12 +738,12 @@ const WorkDetail = ({ route, navigation }) => {
                 style={styles.content}
               >
                 <View>
-                  <View style={styles.name}>
+                  <TouchableOpacity style={styles.name}>
                     <AntDesign name="calendar" size={24} color="gray" />
                     <View style={{ justifyContent: "center" }}>
                       <Text style={{ paddingLeft: 15 }}>Due Date</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 </View>
                 <View>
                   {work.statusWork !== "SOMEDAY" ? (
@@ -682,20 +766,22 @@ const WorkDetail = ({ route, navigation }) => {
                   </View>
                 </View>
                 <View>
-                  {work.isRemindered ? renderTime() : <Text>False</Text>}
+                  {work.isRemindered ? renderTime() : <Text>No</Text>}
                 </View>
               </TouchableOpacity>
             </View>
-            <View style={[styles.namecontainer, {flex:1}]}>
-              <View>
+            <View style={styles.namecontainer}>
+              <View style={{ flex: 1 }}>
                 {work.extraWorks.length > 0 &&
                   work.extraWorks.map((item) => (
-                    <View style={styles.content} key={item.id}>
+                    <View style={styles.extra} key={item.id}>
                       <View
                         style={{ flexDirection: "row", alignItems: "center" }}
                       >
                         <TouchableOpacity
-                          onPress={() => CompletedExtraWork(item.id, item.status)}
+                          onPress={() =>
+                            CompletedExtraWork(item.id, item.status)
+                          }
                         >
                           {item.status === "COMPLETED" ? (
                             <AntDesign
@@ -785,6 +871,7 @@ const WorkDetail = ({ route, navigation }) => {
                 onChangeText={(text) => setNote(text)}
               />
             </View>
+            <View style={{ height: 120 }}></View>
           </View>
         )}
       </ScrollView>
@@ -905,7 +992,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     marginTop: 5,
     width: 320,
-    paddingLeft:10
+    paddingLeft: 10,
   },
   content: {
     flexDirection: "row",
@@ -958,6 +1045,42 @@ const styles = StyleSheet.create({
   extraWorkInput: {
     paddingLeft: 10,
   },
+  extra: {
+    flex: 1,
+    flexDirection: "row",
+    width: "100%",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  buttonStart: {
+    width: 300,
+    borderRadius: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "green",
+    backgroundColor: "white",
+  },
+  buttonCreate: {
+    width: 300,
+    borderRadius: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "green",
+    backgroundColor: "white",
+  },
+
+  startOption:{
+    padding: 15,
+    textAlign: "center",
+    fontSize: 18,
+    color:"green",
+  },
+  createOption:{
+    padding: 15,
+    textAlign: "center",
+    fontSize: 18,
+    color:"green",
+  }
 });
 
 export default WorkDetail;
