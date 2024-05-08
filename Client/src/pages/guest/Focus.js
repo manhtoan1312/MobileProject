@@ -323,7 +323,7 @@ const Focus = () => {
                       <Text style={styles.workName}>{extraWorkName}</Text>
                     </View>
                   </View>
-                </TouchableOpacity>{" "}
+                </TouchableOpacity>
               </View>
               <TouchableOpacity
                 style={styles.closeButton}
